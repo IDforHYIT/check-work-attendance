@@ -1,0 +1,266 @@
+<template>
+  <div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="120"
+              :model="formModel"
+              :rules="formRule">
+          <FormItem label="排班对象类型："
+                    prop="paiBanType">
+            <RadioGroup @on-change='paiBanTypeChange'
+                        v-model="formModel.paiBanType"
+                        type="button">
+              <Radio v-for='(t,i) in paiBanTypeList'
+                     :key='i'
+                     :disabled='formModel.id?true:false'
+                     :label="t.value">{{t.label}}</Radio>
+            </RadioGroup>
+          </FormItem>
+          <FormItem v-show='formModel.paiBanType==1'
+                    label="排班对象："
+                    prop="departInfoId">
+            <treeselect style='width:200px;'
+                        :disabled='formModel.id?true:false'
+                        placeholder='请输入部门名称'
+                        noResultsText='没有数据'
+                        :show-count="true"
+                        v-model="formModel.departInfoId"
+                        :options="departInfoList" />
+          </FormItem>
+          <FormItem v-show='formModel.paiBanType==2'
+                    label="排班对象："
+                    prop="userGuid">
+            <Select placeholder='请选择用户'
+                    style='width:200px;'
+                    :disabled='formModel.id?true:false'
+                    v-model="formModel.userGuid">
+              <Option v-for='(t,i) in userList'
+                      :key='i'
+                      :value="t.userGuid">{{t.fullName}}</Option>
+            </Select>
+          </FormItem>
+          <FormItem label="排班时间段："
+                    prop="paiBanTempTimePartArray">
+            <Select placeholder='休息'
+                    multiple
+                    :disabled='formModel.id?true:false'
+                    style='width:250px;'
+                    v-model="formModel.paiBanTempTimePartArray">
+              <Option v-for='(t,i) in timePartList'
+                      :key='i'
+                      :value="t.id">【{{t.timePartName}}】{{t.onWorkTime}}-{{t.offWorkTime}}</Option>
+            </Select>
+          </FormItem>
+
+          <FormItem label="生效开始时间："
+                    prop="toDate">
+            <DatePicker v-model='formModel.toDate'
+                        format='yyyy-MM-dd'
+                        type="date"
+                        @on-change='dateChange'
+                        placeholder="选择时间"
+                        style="width: 250px"></DatePicker>
+          </FormItem>
+          <FormItem label="临时排班说明："
+                    prop="remark">
+            <Input type="textarea"
+                   :rows="4"
+                   v-model="formModel.remark"
+                   placeholder="请输入临时排班说明" />
+          </FormItem>
+
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getDepartInfoList, getUserList, getBanciList, getTimePartList } from "@/api/data";
+export default {
+  name: 'paibanTemp',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/PaiBanTemp",
+      paiBanTypeList: [{
+        value: 0,
+        label: '公司'
+      }, {
+        value: 1,
+        label: '部门'
+      }, {
+        value: 2,
+        label: '个人'
+      }],
+      departInfoList: [],//部门列表   
+      userList: [],//部门列表  
+      banciList: [],//班次列表
+      timePartList: [],//排班时间段列表      
+      searchFields: {
+      },
+      tableFields: [
+        {
+          title: "排班对象类型",
+          key: "paiBanTypeText",
+          align: "center",
+        },
+        {
+          title: "排班对象",
+          align: "center",
+          render: (h, params) => {
+            let text;
+            if (params.row.paiBanType == 0) {
+              text = '全公司'
+            } else if (params.row.paiBanType == 1) {
+              text = params.row.departName
+            }
+            else if (params.row.paiBanType == 2) {
+              text = params.row.fullName
+            }
+            return h("span", text);
+          }
+        },
+        {
+          title: "班次名称",
+          align: "center",
+          render: (h, params) => {
+            let arr = params.row.paiBanTempTimePartTextArray.map((t) => {
+              return h("p", t)
+            })
+            return h("div", arr);
+          }
+        },
+        {
+          title: "开始生效时间",
+          key: "toDate",
+          align: "center",
+          render: (h, params) => {
+            return h("span", moment(params.row.toDate).format("YYYY-MM-DD HH:mm:ss"));
+          }
+
+        },
+        {
+          title: "临时排班说明",
+          key: "remark",
+        },
+
+
+      ],
+      formModel: {
+        paiBanTempTimePartArray: [],
+        departInfoId: null,
+        userGuid: '',
+        paiBanType: 0,
+        toDate: '',
+        remark: '',
+
+
+      },
+      formRule: {
+        // paiBanTempTimePartArray: [{ required: true, message: "排班时间段不能为空", }],
+        toDate: [{ required: true, message: "生效开始时间不能为空", }],
+      }
+    };
+  },
+  watch: {
+
+  },
+  computed: {
+  },
+  methods: {
+    //排班对象类型切换时触发
+    paiBanTypeChange () {
+      this.formModel.departInfoId = null;
+      this.formModel.userGuid = '';
+    },
+    dateChange (date) {
+      this.formModel.toDate = date;
+    },
+    //处理部门tree数据格式
+    handleDepartInfoList (list) {
+      list.forEach((t, i) => {
+        t.label = t.departName;
+        if (t.children) {
+          this.handleDepartInfoList(t.children);
+        }
+      })
+    },
+    //获取部门列表
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+        this.handleDepartInfoList(res.data)
+        this.departInfoList = res.data;
+      })
+    },
+    //获取用户列表
+    getUserList () {
+      getUserList().then((res) => {
+        this.userList = res.data;
+      })
+    },
+    //获取班次列表
+    getBanciList () {
+      getBanciList().then((res) => {
+        this.banciList = res.data;
+      })
+    },
+    //获取排班时间段列表
+    getTimePartList () {
+      getTimePartList().then((res) => {
+        this.timePartList = res.data;
+      })
+    },
+
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+    this.getBanciList();
+    this.getTimePartList();
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>

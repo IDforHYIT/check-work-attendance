@@ -1,0 +1,321 @@
+import Main from '@/view/main'
+import parentView from '@/components/parent-view'
+
+/**
+ * iview-admin中meta除了原生参数外可配置的参数:
+ * meta: {
+ *  hideInMenu: (false) 设为true后在左侧菜单不会显示该页面选项
+ *  notCache: (false) 设为true后页面不会缓存
+ *  access: (null) 可访问该页面的权限数组，当前路由设置的权限会影响子路由
+ *  icon: (-) 该页面在左侧菜单、面包屑和标签导航处显示的图标，如果是自定义图标，需要在图标名称前加下划线'_'
+ * }
+ */
+
+export default [{
+    path: '/login',
+    name: 'login',
+    meta: {
+      title: 'Login - 登录',
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/login/login.vue')
+  },
+  {
+    path: '/',
+    name: '_home',
+    redirect: '/home',
+    component: Main,
+    meta: {
+      hideInMenu: true,
+      notCache: true
+    },
+    children: [{
+      path: '/home',
+      name: 'home',
+      meta: {
+        hideInMenu: true,
+        title: '首页',
+        notCache: true
+      },
+      component: () =>
+        import('@/view/single-page/home')
+    }]
+  },
+  {
+    path: '/user',
+    name: 'user',
+    meta: {
+      title: '用户管理'
+    },
+    component: Main,
+    children: [{
+      path: 'user_page',
+      name: 'user_page',
+      meta: {
+        icon: 'md-person',
+        title: '用户管理'
+      },
+      component: () =>
+        import('@/view/user/user.vue')
+    }]
+  },
+  {
+    path: '/role',
+    name: 'role',
+    meta: {
+      title: '角色管理'
+    },
+    component: Main,
+    children: [{
+      path: 'role_page',
+      name: 'role_page',
+      meta: {
+        icon: 'ios-contacts',
+        title: '角色管理'
+      },
+      component: () =>
+        import('@/view/role/role.vue')
+    }]
+  },
+  {
+    path: '/departInfo',
+    name: 'departInfo',
+    meta: {
+      title: '部门信息'
+    },
+    component: Main,
+    children: [{
+      path: 'departInfo_page',
+      name: 'departInfo_page',
+      meta: {
+        icon: 'md-git-merge',
+        title: '部门信息'
+      },
+      component: () =>
+        import('@/view/departInfo/departInfo.vue')
+    }]
+  },
+  {
+    path: '/TimePart',
+    name: 'TimePart',
+    meta: {
+      title: '时间段管理'
+    },
+    component: Main,
+    children: [{
+      path: 'TimeParts',
+      name: 'TimeParts',
+      meta: {
+        icon: 'ios-time',
+        title: '时间段管理'
+      },
+      component: () =>
+        import('@/view/TimePart/TimePart.vue')
+    }]
+  },
+  // {
+  //   path: '/PaiBan',
+  //   name: 'PaiBan',
+  //   meta: {
+  //     title: '排班管理'
+  //   },
+  //   component: Main,
+  //   children: [{
+  //     path: 'PaiBans',
+  //     name: 'PaiBans',
+  //     meta: {
+  //       icon: '_qq',
+  //       title: '排班管理'
+  //     },
+  //     component: () =>
+  //       import('@/view/PaiBan/PaiBan.vue')
+  //   }]
+  // },
+  // {
+  //   path: '/Banci',
+  //   name: 'Banci',
+  //   meta: {
+  //     title: '班次管理'
+  //   },
+  //   component: Main,
+  //   children: [{
+  //     path: 'Bancis',
+  //     name: 'Bancis',
+  //     meta: {
+  //       icon: '_qq',
+  //       title: '班次管理'
+  //     },
+  //     component: () =>
+  //       import('@/view/Banci/Banci.vue')
+  //   }]
+  // },
+
+
+  {
+    path: '/banci',
+    name: 'banci',
+    component: Main,
+    meta: {
+      title: '班次管理',
+    },
+    children: [{
+      path: 'banci_page',
+      name: 'banci_page',
+      meta: {
+        icon: 'ios-briefcase',
+        title: '班次管理',
+      },
+      component: () =>
+        import('@/view/banci/banci.vue')
+    }]
+  },
+  {
+    path: '/paiban',
+    name: 'paiban',
+    component: Main,
+    meta: {
+      title: '排班管理',
+    },
+    children: [{
+      path: 'paiban_page',
+      name: 'paiban_page',
+      meta: {
+        icon: 'md-bookmarks',
+        title: '排班管理',
+      },
+      component: () =>
+        import('@/view/paiban/paiban.vue')
+    }]
+  },
+  {
+    path: '/TongJi',
+    name: 'TongJi',
+    component: Main,
+    meta: {
+      title: '审批管理',
+    },
+    children: [{
+      path: 'TongJi_page',
+      name: 'TongJi_page',
+      meta: {
+        icon: 'md-bookmarks',
+        title: '考勤统计',
+      },
+      component: () =>
+        import('@/view/TongJi/TongJi.vue')
+    }]
+  },
+  {
+    path: '/PaiBanTemp',
+    name: 'PaiBanTemp',
+    meta: {
+      title: '临时排班'
+    },
+    component: Main,
+    children: [{
+      path: 'PaiBanTemp_page',
+      name: 'PaiBanTemp_page',
+      meta: {
+        icon: 'ios-bookmarks-outline',
+        title: '临时排班管理'
+      },
+      component: () =>
+        import('@/view/PaiBanTemp/PaiBanTemp.vue')
+    }]
+  },
+  {
+    path: '/daka',
+    name: 'daka',
+    component: Main,
+    meta: {
+      title: '打卡管理',
+    },
+    children: [{
+      path: 'daka_page',
+      name: 'daka_page',
+      meta: {
+        icon: 'ios-locate',
+        title: '打卡管理',
+      },
+      component: () =>
+        import('@/view/daka/daka.vue')
+    }]
+  },
+  // {
+  //   path: '/paiban',
+  //   name: 'paiban',
+  //   component: Main,
+  //   meta: {
+  //     title: '排班管理',
+  //   },
+  //   children: [{
+  //     path: 'paiban_page',
+  //     name: 'paiban_page',
+  //     meta: {
+  //       icon: '_qq',
+  //       title: '排班管理',
+  //     },
+  //     component: () =>
+  //       import('@/view/paiban/paiban.vue')
+  //   }]
+  // },
+
+  // {
+  //   path: '/argu',
+  //   name: 'argu',
+  //   meta: {
+  //     hideInMenu: true
+  //   },
+  //   component: Main,
+  //   children: [
+  //     {
+  //       path: 'params/:id',
+  //       name: 'params',
+  //       meta: {
+  //         icon: 'md-flower',
+  //         title: '动态路由',
+  //         notCache: true
+  //       },
+  //       component: () => import('@/view/argu-page/params.vue')
+  //     },
+  //     {
+  //       path: 'query',
+  //       name: 'query',
+  //       meta: {
+  //         icon: 'md-flower',
+  //         title: '带参路由',
+  //         notCache: true
+  //       },
+  //       component: () => import('@/view/argu-page/query.vue')
+  //     }
+  //   ]
+  // },
+  {
+    path: '/401',
+    name: 'error_401',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/401.vue')
+  },
+  {
+    path: '/500',
+    name: 'error_500',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/500.vue')
+  },
+  {
+    path: '*',
+    name: 'error_404',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/404.vue')
+  }
+]

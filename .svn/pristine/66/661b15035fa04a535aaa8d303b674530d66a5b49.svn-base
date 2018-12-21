@@ -1,0 +1,98 @@
+<template>
+  <Form ref="loginForm"
+        :model="form"
+        :rules="rules"
+        @keydown.enter.native="handleSubmit">
+    <FormItem prop="tenancyName">
+      <Input v-model="form.tenancyName"
+             placeholder="请输入租户">
+      <span slot="prepend">
+        <Icon :size="16"
+              type="ios-person"></Icon>
+      </span>
+      </Input>
+    </FormItem>
+    <FormItem prop="usernameOrEmailAddress">
+      <Input v-model="form.usernameOrEmailAddress"
+             placeholder="请输入用户名">
+      <span slot="prepend">
+        <Icon :size="16"
+              type="ios-person"></Icon>
+      </span>
+      </Input>
+    </FormItem>
+    <FormItem prop="password">
+      <Input type="password"
+             v-model="form.password"
+             placeholder="请输入密码">
+      <span slot="prepend">
+        <Icon :size="14"
+              type="md-lock"></Icon>
+      </span>
+      </Input>
+    </FormItem>
+    <FormItem>
+      <Button @click="handleSubmit"
+              type="primary"
+              long>登录</Button>
+    </FormItem>
+  </Form>
+</template>
+<script>
+export default {
+  name: 'LoginForm',
+  props: {
+    tenancyNameRules: {
+      type: Array,
+      default: () => {
+        return [
+          { required: true, message: '租户不能为空', trigger: 'blur' }
+        ]
+      }
+    },
+    usernameOrEmailAddressRules: {
+      type: Array,
+      default: () => {
+        return [
+          { required: true, message: '账号不能为空', trigger: 'blur' }
+        ]
+      }
+    },
+    passwordRules: {
+      type: Array,
+      default: () => {
+        return [
+          { required: true, message: '密码不能为空', trigger: 'blur' }
+        ]
+      }
+    }
+  },
+  data () {
+    return {
+      form: {
+        tenancyName: 'wzxh',
+        usernameOrEmailAddress: 'admin',
+        password: '123qwe'
+      }
+    }
+  },
+  computed: {
+    rules () {
+      return {
+        usernameOrEmailAddress: this.usernameOrEmailAddressRules,
+        password: this.passwordRules,
+        tenancyName: this.tenancyNameRules
+      }
+    }
+  },
+  methods: {
+    handleSubmit () {
+      this.$refs.loginForm.validate((valid) => {
+        if (valid) {
+          this.$emit('on-success-valid', this.form)
+        }
+      })
+    }
+  }
+}
+</script>

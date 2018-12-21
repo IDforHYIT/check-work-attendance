@@ -1,0 +1,221 @@
+<template>
+<div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+            <Checkbox-group v-model="tableColumnsChecked" @on-change="changeTableColumns">
+                <Checkbox label="show">职位</Checkbox>
+                <Checkbox label="weak">出勤天数</Checkbox>
+                <Checkbox label="signin">出勤班次</Checkbox>
+                <Checkbox label="click">休息天数</Checkbox>
+                <Checkbox label="active">工作时长</Checkbox>
+                <Checkbox label="day7">迟到次数</Checkbox>
+                <Checkbox label="day30">迟到时长</Checkbox>
+                <Checkbox label="tomorrow">严重迟到次数</Checkbox>
+                <Checkbox label="day">严重迟到时长</Checkbox>
+                <Checkbox label="week">旷工迟到天数</Checkbox>
+                <Checkbox label="month">早退次数</Checkbox>
+                <Checkbox v-model="single">早退时长</Checkbox>
+                <Checkbox v-model="single">上班缺卡次数</Checkbox>
+                <Checkbox v-model="single">下班缺卡次数</Checkbox>
+                <Checkbox v-model="single">旷工天数</Checkbox>
+                <Checkbox v-model="single">加班时长-按加班规则计算</Checkbox>
+            </Checkbox-group>
+        </Col>
+      </Row>
+      <Table :data="tableData2" :columns="tableColumns2" border></Table>
+    </Card>
+    </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+export default {
+  mixins: [mixins.commonPage],
+  components: {},
+  data() {
+    return {
+      url: "/UserSignInfo",
+      tableData2: this.mockTableData2(),
+      tableColumns2: [],
+      tableColumnsChecked: [
+        "show",
+        "weak",
+        "signin",
+        "click",
+        "active",
+        "day7",
+        "day30",
+        "tomorrow",
+        "day",
+        "week",
+        "month"
+      ]
+    };
+  },
+  methods: {
+    mockTableData2() {
+      let data = [];
+      function getNum() {
+        return Math.floor(Math.random() * 10000 + 1);
+      }
+      for (let i = 0; i < 10; i++) {
+        data.push({
+          fav: 0,
+          show: getNum(),
+          weak: getNum(),
+          signin: getNum(),
+          click: getNum(),
+          active: getNum(),
+          day7: getNum(),
+          day30: getNum(),
+          tomorrow: getNum(),
+          day: getNum(),
+          week: getNum(),
+          month: getNum()
+        });
+      }
+      return data;
+    },
+    getTable2Columns() {
+      const table2ColumnList = {
+        name: {
+          title: "Name",
+          key: "name",
+          fixed: "left",
+          width: 200,
+          render: (h, params) => {
+            const fav = this.tableData2[params.index].fav;
+            const style =
+              fav === 0
+                ? {
+                    cursor: "pointer"
+                  }
+                : {
+                    cursor: "pointer",
+                    color: "#f50"
+                  };
+
+            return h("div", [
+              h("Icon", {
+                style: style,
+                props: {
+                  type: fav === 0 ? "ios-star-outline" : "ios-star"
+                },
+                nativeOn: {
+                  click: () => {
+                    this.toggleFav(params.index);
+                  }
+                }
+              }),
+              h("span", " " + params.row.name)
+            ]);
+          }
+        },
+        show: {
+          title: "Show",
+          key: "show",
+          width: 150,
+          sortable: true
+        },
+        weak: {
+          title: "Weak",
+          key: "weak",
+          width: 150,
+          sortable: true
+        },
+        signin: {
+          title: "Signin",
+          key: "signin",
+          width: 150,
+          sortable: true
+        },
+        click: {
+          title: "Click",
+          key: "click",
+          width: 150,
+          sortable: true
+        },
+        active: {
+          title: "Active",
+          key: "active",
+          width: 150,
+          sortable: true
+        },
+        day7: {
+          title: "7, retained",
+          key: "day7",
+          width: 150,
+          sortable: true
+        },
+        day30: {
+          title: "30, retained",
+          key: "day30",
+          width: 150,
+          sortable: true
+        },
+        tomorrow: {
+          title: "The next day left",
+          key: "tomorrow",
+          width: 150,
+          sortable: true
+        },
+        day: {
+          title: "Day Active",
+          key: "day",
+          width: 150,
+          sortable: true
+        },
+        week: {
+          title: "Week Active",
+          key: "week",
+          width: 150,
+          sortable: true
+        },
+        month: {
+          title: "Month Active",
+          key: "month",
+          width: 150,
+          sortable: true
+        }
+      };
+
+      let data = [table2ColumnList.name];
+
+      this.tableColumnsChecked.forEach(col => data.push(table2ColumnList[col]));
+
+      return data;
+    },
+    changeTableColumns() {
+      this.tableColumns2 = this.getTable2Columns();
+    },
+    toggleFav(index) {
+      this.tableData2[index].fav = this.tableData2[index].fav === 0 ? 1 : 0;
+    }
+  },
+  mounted() {
+    this.changeTableColumns();
+  }
+};
+</script>

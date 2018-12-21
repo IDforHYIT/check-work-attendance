@@ -1,0 +1,8 @@
+{
+  "protocol": "ftp",
+  "host": "47.100.116.178",
+  "port": 6555,
+  "username": "xuhuiwww",
+  "password": "xuhuicn1q2w",
+  "remotePath": "/time.xuhuicn.com"
+}
