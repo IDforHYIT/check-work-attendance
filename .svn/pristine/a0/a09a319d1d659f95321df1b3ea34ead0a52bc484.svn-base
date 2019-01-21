@@ -1,0 +1,214 @@
+<template>
+  <div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Poptip confirm
+                transfer
+                title="是否清空所有开门记录"
+                @on-ok="deleteDataAll()">
+          <Button size='small'
+                  icon="ios-trash"
+                  style='margin-right:10px;'
+                  type='error'>清空开门记录</Button>
+        </Poptip>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.mDeviceName"
+               placeholder="设备标识码" />
+        <Input v-model="searchFields.mDeviceDisplayName"
+               placeholder="设备名称" />
+        <Input v-model="searchFields.applyName"
+               placeholder="开门人员" />
+        <Select @on-change='searchData'
+                placeholder='请选择开门类型'
+                style='width:150px;'
+                clearable
+                v-model="searchFields.openType">
+          <Option v-for='(t,i) in openTypeList'
+                  :key='i'
+                  :value="t.value">{{t.label}}</Option>
+        </Select>       
+        <DatePicker @on-change='searchData'
+                    v-model='searchDaterange'
+                    :options='searchDaterangeOptions'
+                    type="daterange"
+                    split-panels
+                    placeholder="选择时间段"></DatePicker>
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFields"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-sizer
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getDepartInfoList, getUserList, getBanciList, deleteDaKaList } from "@/api/data";
+import { getUserGuid } from '@/libs/util'
+export default {
+  name: 'MOpenLog',
+  mixins: [mixins.commonPage],
+  components: {},
+  
+  data () {
+    return {
+      url: "/MOpenLog",
+      searchDaterange: [], //搜索时间段value
+      openTypeList: [
+      {
+        value: 0,
+        label: '人脸'
+      },
+      {
+        value: 1,
+        label: '呼叫'
+      }, {
+        value: 2,
+        label: '近端'
+      }, {
+        value: 3,
+        label: '临时密码'
+      }
+      ],
+      searchFields: {
+        mDeviceName: '',
+        mDeviceDisplayName: '',
+        applyName: '',
+        openTime: '',
+        startDate: moment().format('YYYY-MM-DD'),
+        endDate: moment().month(1).format('YYYY-MM-DD'),
+      },
+      tableFields: [
+        {
+          title: "设备标识码",
+          key: "mDeviceName",
+          align: "center",
+        },
+        {
+          title: "设备名称",
+          key: "mDeviceDisplayName",
+          align: "center",
+
+        },
+        {
+          title: "开门人员",
+          key: "applyFullName",
+          align: "center",
+        },
+        
+        {
+          title: "开门类型",
+          key: "openType",
+          align: "center",
+          render: (h, params) => {
+            // let text = this.signTypeList.find((t) => {
+            //   return t.value == params.row.signType
+            // }).label 
+            return h("span", params.row.openTypeText);
+          }
+
+        },
+
+        {
+          title: "开门时间",
+          key: "openTime",
+          align: "center",
+          render: (h, params) => {
+            return h("span", moment(params.row.openTime).format("YYYY-MM-DD HH:mm:ss"));
+          }
+        },
+        {
+          title: "是否开门成功",
+          key: "isOpen",
+          align: "center",
+          render: (h, params) => {
+            return h("span", params.row.isOpen ? '是' : '否');
+          }
+        },
+        {
+          title: "说明",
+          key: "remark",
+          align: "center",
+        },
+      ],
+      formModel: {
+      },
+      formRule: {
+
+      }
+    };
+  },
+    watch: {
+    'searchFields.openTime' () {
+      this.searchData();
+    },
+    'searchDaterange' (dateRangeArr) {
+      if (dateRangeArr[0] != '') {
+        this.searchFields['startDate'] = moment(dateRangeArr[0]).format("YYYY-MM-DD")
+        this.searchFields['endDate'] = moment(dateRangeArr[1]).format("YYYY-MM-DD")
+      } else {
+        this.searchFields['startDate'] = ''
+        this.searchFields['endDate'] = ''
+      }
+    }
+  },
+  computed: {
+  },
+  methods: {
+    //展会做临时清空打卡记录用
+    deleteDataAll () {
+      deleteDaKaList().then(() => {
+        this.getData();
+      })
+
+    },
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+
+      })
+    },
+    getUserList () {
+
+    }
+
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+    this.searchDaterange=[this.searchFields['startDate'],this.searchFields['endDate']]
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>

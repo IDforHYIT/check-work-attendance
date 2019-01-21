@@ -1,0 +1,262 @@
+import Main from '@/view/main'
+import parentView from '@/components/parent-view'
+
+/**
+ * iview-admin中meta除了原生参数外可配置的参数:
+ * meta: {
+ *  hideInMenu: (false) 设为true后在左侧菜单不会显示该页面选项
+ *  notCache: (false) 设为true后页面不会缓存
+ *  access: (null) 可访问该页面的权限数组，当前路由设置的权限会影响子路由
+ *  icon: (-) 该页面在左侧菜单、面包屑和标签导航处显示的图标，如果是自定义图标，需要在图标名称前加下划线'_'
+ * }
+ */
+export default [{
+    path: '/login',
+    name: 'login',
+    meta: {
+      title: 'Login - 登录',
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/login/login.vue')
+  },
+  {
+    path: '/',
+    name: '_home',
+    redirect: '/home',
+    component: Main,
+    meta: {
+      hideInMenu: true,
+      notCache: true
+    },
+    children: [{
+      path: '/home',
+      name: 'home',
+      meta: {
+        hideInMenu: true,
+        title: '首页',
+        notCache: true
+      },
+      component: () =>
+        import('@/view/single-page/home')
+    }]
+  },
+  {
+    path: '/user',
+    name: 'user',
+    meta: {
+      title: '用户管理',
+      icon: 'md-person',
+      hideInMenu: true,
+    },
+    component: Main,
+    children: [{
+      path: 'user_page',
+      name: 'user_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'md-person',
+        title: '用户管理'
+      },
+      component: () =>
+        import('@/view/user/user.vue')
+    }]
+  },
+  {
+    path: '/departInfo',
+    name: 'departInfo',
+    meta: {
+      hideInMenu: true,
+      icon: 'md-git-merge',
+      title: '部门信息'
+    },
+    component: Main,
+    children: [{
+      path: 'departInfo_page',
+      name: 'departInfo_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'md-git-merge',
+        title: '部门信息'
+      },
+      component: () =>
+        import('@/view/departInfo/departInfo.vue')
+    }]
+  },
+
+  {
+    path: '/attendanceManagement',
+    name: 'attendanceManagement',
+    component: Main,
+    meta: {
+      hideInMenu: true,
+      icon: 'md-bookmarks',
+      title: '考勤管理',
+    },
+    children: [{
+      path: 'TongJi_page',
+      name: 'TongJi_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'md-bookmarks',
+        title: '考勤统计',
+      },
+      component: () =>
+        import('@/view/TongJi/TongJi.vue')
+    }, {
+      path: 'PaiBanTemp_page',
+      name: 'PaiBanTemp_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'ios-bookmarks-outline',
+        title: '临时排班管理'
+      },
+      component: () =>
+        import('@/view/PaiBanTemp/PaiBanTemp.vue')
+    }, {
+      path: 'paiban_page',
+      name: 'paiban_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'md-bookmarks',
+        title: '排班管理',
+      },
+      component: () =>
+        import('@/view/paiban/paiban.vue')
+    }, {
+      path: 'banci_page',
+      name: 'banci_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'ios-briefcase',
+        title: '班次管理',
+      },
+      component: () =>
+        import('@/view/banci/banci.vue')
+    }, {
+      path: 'TimeParts',
+      name: 'TimeParts',
+      meta: {
+        hideInMenu: true,
+        icon: 'ios-time',
+        title: '时间段管理'
+      },
+      component: () =>
+        import('@/view/TimePart/TimePart.vue')
+    }, {
+      path: 'daka_page',
+      name: 'daka_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'ios-locate',
+        title: '打卡记录',
+      },
+      component: () =>
+        import('@/view/daka/daka.vue')
+    }]
+  },
+  {
+    path: '/accessControl',
+    name: 'accessControl',
+    component: Main,
+    meta: {
+      hideInMenu: true,
+      icon: 'md-bookmarks',
+      title: '门禁管理',
+    },
+    children: [{
+        path: 'Device_page',
+        name: 'Device_page',
+        meta: {
+          hideInMenu: true,
+          icon: 'md-bookmarks',
+          title: '门禁设备',
+        },
+        component: () =>
+          import('@/view/Device/Device.vue')
+      },
+
+      {
+        path: 'DeviceRules_page',
+        name: 'DeviceRules_page',
+        meta: {
+          hideInMenu: true,
+          icon: 'md-bookmarks',
+          title: '门禁设备规则',
+        },
+        component: () =>
+          // import('@/view/MOpenLog/MOpenLog.vue')
+          import('@/view/DeviceRules/DeviceRules.vue')
+      },
+      {
+        path: 'MOpenLog_page',
+        name: 'MOpenLog_page',
+        meta: {
+          hideInMenu: true,
+          icon: 'md-bookmarks',
+          title: '开门记录',
+        },
+        component: () =>
+          import('@/view/MOpenLog/MOpenLog.vue')
+      }
+    ]
+  },
+  {
+    path: '/systemManagement',
+    name: 'systemManagement',
+    meta: {
+      hideInMenu: true,
+      icon: 'md-git-merge',
+      title: '系统管理'
+    },
+    component: Main,
+    children: [{
+      path: 'sysMenu_page',
+      name: 'sysMenu_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'md-git-merge',
+        title: '菜单管理'
+      },
+      component: () =>
+        import('@/view/sysMenu/sysMenu.vue')
+    }, {
+      path: 'role_page',
+      name: 'role_page',
+      meta: {
+        hideInMenu: true,
+        icon: 'ios-contacts',
+        title: '角色管理'
+      },
+      component: () =>
+        import('@/view/role/role.vue')
+    }]
+  },
+  {
+    path: '/401',
+    name: 'error_401',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/401.vue')
+  },
+  {
+    path: '/500',
+    name: 'error_500',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/500.vue')
+  },
+  {
+    path: '*',
+    name: 'error_404',
+    meta: {
+      hideInMenu: true
+    },
+    component: () =>
+      import('@/view/error-page/404.vue')
+  }
+]

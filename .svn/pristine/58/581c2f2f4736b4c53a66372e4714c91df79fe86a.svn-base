@@ -1,0 +1,91 @@
+<template>
+
+  <Upload class='common-importTableData-button'
+          ref="upload"
+          :headers='headers'
+          :show-upload-list="false"
+          :on-success="handleSuccess"
+          :format="['xlsx']"
+          :max-size="1024"
+          :on-format-error="handleFormatError"
+          :on-exceeded-size="handleMaxSize"
+          :before-upload="handleBeforeUpload"
+          :on-progress="handleOnProgress"
+          :on-error='handleOnError'
+          handleOnProgress
+          :action='url'>
+    <Button type="primary"
+            icon="ios-cloud-upload-outline">导入数据</Button>
+  </Upload>
+</template>
+<script>
+import config from "@/config";
+import { getToken } from "@/libs/util";
+export default {
+  data () {
+    return {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      },
+
+    };
+  },
+
+  computed: {
+    url () {
+      let url =
+        process.env.NODE_ENV === "development"
+          ? config.baseUrl.dev
+          : config.baseUrl.pro;
+      return `${url}${this.action}`;
+    }
+  },
+  props: ["action"],
+  methods: {
+    handleSuccess (res, file) {
+      if (res.result) {
+        this.$emit("on-success", res);
+      } else {
+        this.$Message.error(res.message);
+      }
+
+
+      //   file.url = `${res.data.url}`;
+      //   file.name = res.data.id;
+    },
+    handleFormatError (file) {
+      this.$Notice.warning({
+        title: "文件格式不正确",
+        desc: `文件[${file.name}]格式不正确, 请选择xlsx`,
+
+      });
+    },
+    handleMaxSize (file) {
+      this.$Notice.warning({
+        title: "超过文件大小限制",
+        desc: "文件  " + file.name + " 太大了，不要超过2mb"
+      });
+    },
+    handleOnError (res) {
+      this.$Message.error('图片上传失败');
+    },
+    handleBeforeUpload () {
+      // const check = this.uploadList.length < 5;
+      // if (!check) {
+      //   this.$Notice.warning({
+      //     title: "Up to five pictures can be uploaded."
+      //   });
+      // }
+      // return check;
+    },
+    handleOnProgress () {
+      //   this.uploadList = [];
+    }
+  },
+  mounted () {
+
+  }
+};
+</script>
+<style>
+</style>

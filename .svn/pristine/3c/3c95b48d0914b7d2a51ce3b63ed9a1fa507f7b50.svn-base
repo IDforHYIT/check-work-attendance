@@ -1,0 +1,308 @@
+<template>
+  <div class="role">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.name"
+               placeholder="请输入识别码" />
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             width='550'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="130"
+              :model="formModel"
+              :rules="formRule">
+
+          <FormItem label="设备识别码："
+                    prop="name">
+            <Input v-model="formModel.name"
+                   placeholder="请输入识别码" />
+          </FormItem>
+          <FormItem label="设备名称："
+                    prop="displayName">
+            <Input v-model="formModel.displayName"
+                   placeholder="请输入设备名称" />
+          </FormItem>
+          <FormItem label="设备描述："
+                    prop="description">
+            <Input v-model="formModel.description"
+                   placeholder="请输入设备描述" />
+          </FormItem>
+          <FormItem label="设备负责人："
+                    prop="mainUserGuid">
+            <Select placeholder='请选择用户'
+                    style='width:200px;'
+                    filterable
+                    v-model="formModel.mainUserGuid">
+              <Option v-for='(t,i) in userList'
+                      :key='i'
+                      :value="t.userGuid">{{t.fullName}}</Option>
+            </Select>
+
+          </FormItem>
+          <FormItem label="设备类型："
+                    prop="deviceType">
+            <Select v-model="formModel.deviceType"
+                    style="width:200px;">
+              <Option v-for='(t,i) in deviceTypeList'
+                      :key='i'
+                      :value="t.value">{{t.label}}</Option>
+              <!-- <Option :value="1">考勤机</Option>
+                  <Option :value="2">门禁机</Option> -->
+            </Select>
+          </FormItem>
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getUserList } from "@/api/data";
+import { mapMutations } from 'vuex'
+export default {
+  name: "MDevice",
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/MDevice",
+      searchFields: {
+
+      },
+      deviceTypeList: [{
+        value: 1,
+        label: '考勤机'
+      }, {
+        value: 2,
+        label: '门禁机'
+      }],
+      userList: [],//部门列表  
+      tableFields: [
+        {
+          title: "设备识别码",
+          key: "name",
+          align: "center",
+
+        },
+        {
+          title: "设备名称",
+          key: "displayName",
+          align: "center",
+
+        },
+        // {
+        //   title: "设备类型",
+        //   key: "deviceType",
+        //   align: "center",
+
+        // },
+        {
+          title: "设备描述",
+          key: "description",
+          align: "center",
+
+        },
+        // {
+        //   title: "门禁设备",
+        //   key: "deviceIpAddress",
+        //   align: "center",
+
+        // }, 
+        {
+          title: "设备负责人",
+          key: "mainUserFullName",
+          align: "center",
+          // render: (h, params) => {
+          //   let str= params.row.mainUserFullName.map((t)=>{
+          //     return t.fullName
+          //   }).join(',')
+          //   return h("span", str)
+          // }
+        },
+        {
+          title: "设备类型",
+          key: "deviceType",
+          align: "center",
+          render: (h, params) => {
+            let device = this.deviceTypeList.find((t) => {
+              return t.value == params.row.deviceType
+            }).label
+            return h("span", device);
+          }
+        },
+      ],
+      formModel: {
+        name: "",
+        displayName: "",
+        description: "",
+        deviceTypeText: "",
+        userGuid: "",
+        mainUserGuid: '',
+        deviceType: "",
+      },
+      formRule: {
+        name: { required: true, message: '设备识别码不能为空', trigger: 'change' },
+        displayName: { required: true, message: '设备名称不能为空', trigger: 'change' },
+        description: "",
+        deviceTypeText: "",
+        mainUserGuid: { required: true, message: '设备负责人不能为空', trigger: 'change' },
+        deviceType: { required: true, type: "number", message: '设备类型不能为空', trigger: 'change' },
+
+      },
+      tableFieldsAction: {
+        title: "操作",
+        key: "action",
+        width: 250,
+        align: "center",
+        render: (h, params) => {
+          return h("div", [
+            h(
+              "Button", {
+                props: {
+                  icon: "md-create",
+                  type: "success",
+                  size: "small"
+                },
+                style: {
+                  marginRight: "5px"
+                },
+                on: {
+                  click: () => {
+                    this.createTagQuery(params.row);
+                  }
+                }
+              },
+              "规则"
+            ),
+            h(
+              "Button", {
+                props: {
+                  icon: "md-create",
+                  type: "success",
+                  size: "small"
+                },
+                style: {
+                  marginRight: "5px"
+                },
+                on: {
+                  click: () => {
+                    this.formOpenModal(params.row[this.aliasId ? this.aliasId : 'id']);
+                  }
+                }
+              },
+              "修改"
+            ),
+            h(
+              "Poptip", {
+                props: {
+                  confirm: true,
+                  title: "您确定要删除这条数据吗?",
+                  transfer: true
+                },
+                on: {
+                  "on-ok": () => {
+                    this.deleteData(params.row[this.aliasId ? this.aliasId : 'id']);
+                  }
+                }
+              }, [
+                h(
+                  "Button", {
+                    props: {
+                      icon: "ios-trash",
+                      type: "error",
+                      size: "small"
+                    }
+                  },
+                  "删除"
+                )
+              ]
+            )
+          ]);
+        }
+      },
+
+    };
+  },
+  computed: {},
+  methods: {
+    ...mapMutations([
+      'addTag'
+    ]),
+    createTagQuery (params) {
+      const route = {
+        name: 'DeviceRules_page',
+        query: {
+          id: params.id,
+          displayName: params.displayName
+        },
+        meta: {
+          title: `门禁设备规则-${params.displayName}`
+        }
+      }
+      this.addTag({
+        route: route,
+        type: 'push'
+      })
+      this.$router.push(route)
+    },
+    getUserList () {
+      getUserList({
+        pageSize: 0,
+        curPage: 1,
+      }).then((res) => {
+        this.userList = res.data;
+      })
+    },
+  },
+  mounted () {
+    this.getUserList();
+  }
+};
+</script>
+<style lang="less" scoped></style>

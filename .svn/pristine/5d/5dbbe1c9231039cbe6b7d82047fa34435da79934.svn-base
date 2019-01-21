@@ -1,0 +1,166 @@
+<template>
+  <div class="role">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+
+      <Table ref='table'
+             @on-selection-change='tableSelectionChange'
+             :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+
+      <Row>
+        <Col span="12"
+             class='common-footer-button-group'>
+        <Poptip confirm
+                title="是否批量删除?"
+                @on-ok="deleteAllListData">
+          <Button type="error"
+                  icon="ios-trash">批量删除</Button>
+        </Poptip>
+        <Button icon="ios-download-outline"
+                type="primary"
+                @click="exportTableData"> 导出数据</Button>
+        <CommonImportTableUpload action='/ExternalContact/ExcelImportValidation'
+                                 @on-success='importTableData'></CommonImportTableUpload>
+
+        </Col>
+        <Col span="12">
+        <Page class='common-page-box'
+              v-if='tableList.length>0'
+              show-elevator
+              :page-size="pageSize"
+              :total="total"
+              :current="curPage"
+              @on-change="pageChange"
+              @on-page-size-change='pageChangeSize'></Page>
+        </Col>
+      </Row>
+      <Modal ref='formModal'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="90"
+              :model="formModel"
+              :rules="formRule">
+          <FormItem label="姓名："
+                    prop="name">
+            <Input v-model="formModel.name"
+                   placeholder="请输入姓名" />
+          </FormItem>
+          <FormItem label="手机："
+                    prop="mobilePhone">
+            <Input v-model="formModel.mobilePhone"
+                   placeholder="请输入手机" />
+          </FormItem>
+          <FormItem label="地址："
+                    prop="address">
+            <Input v-model="formModel.address"
+                   placeholder="请输入地址" />
+          </FormItem>
+          <FormItem label="备注："
+                    prop="remark">
+            <Input v-model="formModel.remark"
+                   placeholder="请输入备注" />
+          </FormItem>
+
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import { getDepartInfoList, getnewRoleGroupList } from "@/api/data";
+export default {
+  name: 'users',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      departInfoList: [],
+      newRoleGroup: [],
+      roleList: [],
+      url: "/ExternalContact",
+      searchFields: {
+
+      },
+      tableFields: [
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+
+        {
+          title: "姓名",
+          key: "name",
+          align: "center"
+        },
+
+        {
+          title: "手机",
+          key: "mobilePhone",
+          align: "center"
+        },
+        {
+          title: "地址",
+          key: "address",
+          align: "center"
+        },
+        {
+          title: "备注",
+          key: "remark",
+          align: "left"
+        },
+      ],
+
+      formModel: {
+        address: "",
+        mobilePhone: '',
+        remark: '',
+        name: ""
+      },
+      formRule: {
+
+      }
+    };
+  },
+  computed: {},
+  methods: {
+    //导入表格
+    importTableData (res) {
+      //导入成功后要做的事
+    }
+
+  },
+  mounted () {
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>

@@ -1,0 +1,170 @@
+<template>
+  <div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Poptip confirm
+                transfer
+                title="是否清空所有开门记录"
+                @on-ok="deleteDataAll()">
+          <Button size='small'
+                  icon="ios-trash"
+                  style='margin-right:10px;'
+                  type='error'>清空开门记录</Button>
+        </Poptip>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.mDeviceName"
+               placeholder="设备标识码" />
+        <Input v-model="searchFields.mDeviceDisplayName"
+               placeholder="设备名称" />
+        <Input v-model="searchFields.applyName"
+               placeholder="开门人员" />
+        <DatePicker @on-change='searchData'
+                    v-model='searchDaterange'
+                    type="daterange"
+                    split-panels
+                    placeholder="选择时间段"></DatePicker>
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFields"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-sizer
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getDepartInfoList, getUserList, getBanciList, deleteDaKaList } from "@/api/data";
+import { getUserGuid } from '@/libs/util'
+export default {
+  name: 'MOpenLog',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/MOpenLog",
+      searchDaterange: [], //搜索时间段value
+      searchFields: {
+        mDeviceName: '',
+        mDeviceDisplayName: '',
+        applyName: '',
+        openTime: '',
+        startSignDate: '',
+        endSignDate: '',
+      },
+      tableFields: [
+        {
+          title: "设备标识码",
+          key: "mDeviceName",
+          align: "center",
+        },
+        {
+          title: "开门人员",
+          key: "applyFullName",
+          align: "center",
+        },
+        {
+          title: "设备名称",
+          key: "mDeviceDisplayName",
+          align: "center",
+
+        },
+
+        {
+          title: "开门时间",
+          key: "openTime",
+          align: "center",
+          render: (h, params) => {
+            return h("span", moment(params.row.openTime).format("YYYY-MM-DD HH:mm:ss"));
+          }
+        },
+        {
+          title: "是否开门成功",
+          key: "isOpen",
+          align: "center",
+          render: (h, params) => {
+            return h("span", params.row.isOpen ? '是' : '否');
+          }
+        },
+        {
+          title: "说明",
+          key: "remark",
+          align: "center",
+        },
+      ],
+      watch: {
+        'searchDaterange' (dateRangeArr) {
+          if (dateRangeArr[0] != '') {
+            this.searchFields['startSignDate'] = moment(dateRangeArr[0]).format("YYYY-MM-DD")
+            this.searchFields['endSignDate'] = moment(dateRangeArr[1]).format("YYYY-MM-DD")
+          } else {
+            this.searchFields['startSignDate'] = ''
+            this.searchFields['endSignDate'] = ''
+          }
+        }
+      },
+      formModel: {
+      },
+      formRule: {
+
+      }
+    };
+  },
+  computed: {
+  },
+  methods: {
+    //展会做临时清空打卡记录用
+    deleteDataAll () {
+      deleteDaKaList().then(() => {
+        this.getData();
+      })
+
+    },
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+
+      })
+    },
+    getUserList () {
+
+    }
+
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>

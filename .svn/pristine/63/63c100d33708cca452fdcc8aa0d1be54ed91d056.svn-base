@@ -1,0 +1,274 @@
+<template>
+  <div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.paiBanTypeText"
+               placeholder="请选择姓名" />
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-sizer
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="100"
+              :model="formModel"
+              :rules="formRule">
+          <FormItem label="班次："
+                    prop="banciId">
+            <Select placeholder='请选择班次：'
+                    style='width:200px;'
+                    :disabled='formModel.id?true:false'
+                    v-model="formModel.banciId">
+              <Option v-for='(t,i) in banciList'
+                      :key='i'
+                      :value="t.id">{{t.banciName}}</Option>
+            </Select>
+          </FormItem>
+          <FormItem label="排班对象类型："
+                    prop="paiBanType">
+            <RadioGroup @on-change='paiBanTypeChange'
+                        v-model="formModel.paiBanType"
+                        type="button">
+              <Radio v-for='(t,i) in paiBanTypeList'
+                     :key='i'
+                     :disabled='formModel.id?true:false'
+                     :label="t.value">{{t.label}}</Radio>
+            </RadioGroup>
+          </FormItem>
+          <FormItem v-show='formModel.paiBanType==1'
+                    label="排班对象："
+                    prop="departInfoId">
+            <treeselect style='width:200px;'
+                        :disabled='formModel.id?true:false'
+                        placeholder='请输入部门名称'
+                        noResultsText='没有数据'
+                        :show-count="true"
+                        v-model="formModel.departInfoId"
+                        :options="departInfoList" />
+          </FormItem>
+          <FormItem v-show='formModel.paiBanType==2'
+                    label="排班对象："
+                    prop="userGuid">
+            <Select placeholder='请选择用户'
+                    style='width:200px;'
+                    filterable
+                    :disabled='formModel.id?true:false'
+                    v-model="formModel.userGuid">
+              <Option v-for='(t,i) in userList'
+                      :key='i'
+                      :value="t.userGuid">{{t.fullName}}</Option>
+            </Select>
+          </FormItem>
+
+          <FormItem label="排班时间段："
+                    prop="startDate">
+            <Input style='width: 0;'
+                   v-model="formModel.startDate" />
+            <DatePicker v-model='formModelDaterange'
+                        type="daterange"
+                        split-panels
+                        placeholder="选择时间段"
+                        style="width: 200px"></DatePicker>
+          </FormItem>
+
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getDepartInfoList, getUserList, getBanciList } from "@/api/data";
+export default {
+  name: 'paiban',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/Paiban",
+      paiBanTypeList: [{
+        value: 0,
+        label: '公司'
+      }, {
+        value: 1,
+        label: '部门'
+      }, {
+        value: 2,
+        label: '个人'
+      }],
+      formModelDaterange: [],//时间段选择临时存放
+      departInfoList: [],//部门列表   
+      userList: [],//部门列表  
+      banciList: [],//班次列表
+      searchFields: {
+      },
+      tableFields: [
+        {
+          title: "排班对象类型",
+          key: "paiBanTypeText",
+          align: "center",
+        },
+        {
+          title: "排班对象",
+          align: "center",
+          render: (h, params) => {
+            let text;
+            if (params.row.paiBanType == 0) {
+              text = '全公司'
+            } else if (params.row.paiBanType == 1) {
+              text = params.row.departName
+            }
+            else if (params.row.paiBanType == 2) {
+              text = params.row.fullName
+            }
+            return h("span", text);
+          }
+        },
+        {
+          title: "班次名称",
+          key: "banciName",
+          align: "center",
+        },
+        {
+          title: "排班时间段",
+          align: "center",
+          render: (h, params) => {
+            return h("span", `${moment(params.row.startDate).format("YYYY-MM-DD")} —— ${moment(params.row.endDate).format("YYYY-MM-DD")}`);
+          }
+        },
+      ],
+      formModel: {
+        // banciName: "",
+        banciId: '',
+        departInfoId: null,
+        userGuid: '',
+        paiBanType: 0,
+        startDate: '',
+        endDate: '',
+
+
+      },
+      formRule: {
+        banciId: [
+          { required: true, message: '班次不能为空', trigger: 'change' }
+        ],
+        startDate: [
+          { required: true, message: '时间段不能为空', trigger: 'change' }
+        ],
+      }
+    };
+  },
+  watch: {
+    'formModelDaterange' (dateRangeArr) {
+      if (dateRangeArr[0] != '') {
+        this.formModel['startDate'] = moment(dateRangeArr[0]).format("YYYY-MM-DD")
+        this.formModel['endDate'] = moment(dateRangeArr[1]).format("YYYY-MM-DD")
+      }
+    }
+  },
+  computed: {
+  },
+  methods: {
+    //排班对象类型切换时触发
+    paiBanTypeChange () {
+      this.formModel.departInfoId = null;
+      this.formModel.userGuid = '';
+    },
+    //获取form之后执行
+    getFormDataAfter () {
+      console.log(this.formModel.userGuid)
+      this.formModelDaterange = [this.formModel.startDate, this.formModel.endDate];
+    },
+    //关闭form弹窗之后执行
+    formCloseModalAfter () {
+      this.formModel['startDate'] = ''
+      this.formModel['endDate'] = '';
+      this.formModelDaterange = [];
+    },
+    //处理部门tree数据格式
+    handleDepartInfoList (list) {
+      list.forEach((t, i) => {
+        t.label = t.departName;
+        if (t.children && t.children.length > 0) {
+          this.handleDepartInfoList(t.children);
+        } else {
+          t.children = '';
+        }
+      })
+    },
+    //获取部门列表
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+        this.handleDepartInfoList(res.data)
+        this.departInfoList = res.data;
+      })
+    },
+    //获取用户列表
+    getUserList () {
+      getUserList({
+        pageSize: 999,
+        curPage: 1,
+      }).then((res) => {
+        this.userList = res.data;
+      })
+    },
+    //获取班次列表
+    getBanciList () {
+      getBanciList().then((res) => {
+        this.banciList = res.data;
+      })
+    },
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+    this.getBanciList();
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>

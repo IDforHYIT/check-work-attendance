@@ -1,0 +1,341 @@
+<template>
+  <div class="role">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.timePartName"
+               placeholder="请输入时间段" />
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+      <Page v-if='tableList.length>0'
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             width='550'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="130"
+              :model="formModel"
+              :rules="formRule">
+          <Alert type="warning"
+                 show-icon>
+            开始签到时间不能大于开始工作时间<br>
+            结束签到时间不能大于结束工作时间<br>
+            开始签退时间不能小于结束工作时间
+          </Alert>
+          <FormItem label="时间段名称："
+                    prop="timePartName">
+            <Input v-model="formModel.timePartName"
+                   placeholder="请输入时间段名称" />
+          </FormItem>
+          <FormItem label="工作时间段：">
+            <Row>
+              <Col span="8">
+              <FormItem label=""
+                        prop="onWorkTime">
+                <TimePicker v-model="formModel.onWorkTime"
+                            format="HH:mm:ss"
+                            placeholder="上班时间"
+                            style="width: 120px"></TimePicker>
+              </FormItem>
+              </Col>
+              <Col span="1"
+                   style="text-align: left">-</Col>
+              <Col span="8">
+              <FormItem label=""
+                        prop="offWorkTime">
+                <TimePicker v-model="formModel.offWorkTime"
+                            format="HH:mm:ss"
+                            placeholder="下班时间"
+                            style="width: 120px"></TimePicker>
+              </FormItem>
+              </Col>
+              <Col span="1">
+              <FormItem prop="isMorrow">
+                <Checkbox v-model="formModel.isMorrow"
+                          style="width: 58px">次日</Checkbox>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem>
+
+          <FormItem label="签到时间段：">
+            <Row>
+              <Col span="8">
+              <FormItem prop="startSignOnTime">
+                <TimePicker v-model="formModel.startSignOnTime"
+                            format="HH:mm:ss"
+                            placeholder="开始签到"
+                            style="width: 120px"></TimePicker><br />
+              </FormItem>
+              </Col>
+              <Col span="1"
+                   style="text-align: left">-</Col>
+              <Col span="8">
+              <FormItem prop="endSignOnTime">
+                <TimePicker v-model="formModel.endSignOnTime"
+                            format="HH:mm:ss"
+                            placeholder="结束签到"
+                            style="width: 120px"></TimePicker><br />
+              </FormItem>
+              </Col>
+              <Col span="1">
+              <FormItem prop="isStartMorrow">
+                <Checkbox v-model="formModel.isStartMorrow"
+                          style="width: 58px">次日</Checkbox>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem>
+          <FormItem label="签退时间段：">
+            <Row>
+              <Col span="8">
+              <FormItem prop="startSignOffTime">
+                <TimePicker v-model="formModel.startSignOffTime"
+                            format="HH:mm:ss"
+                            placeholder="开始签退"
+                            style="width: 120px"></TimePicker>
+              </FormItem>
+              </Col>
+              <Col span="1"
+                   style="text-align: left">-</Col>
+              <Col span="8">
+              <FormItem prop="endSignOffTime">
+                <TimePicker v-model="formModel.endSignOffTime"
+                            format="HH:mm:ss"
+                            placeholder="结束签退"
+                            style="width: 120px"></TimePicker>
+              </FormItem>
+              </Col>
+              <Col span="1">
+              <FormItem prop="isEndMorrow">
+                <Checkbox v-model="formModel.isEndMorrow"
+                          style="width: 58px">次日</Checkbox>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem>
+          <!-- <FormItem label="折合工作日："
+                    prop="days">
+            <Input v-model="formModel.days"
+                   placeholder="请输入折合工作日"
+                   style="width: 120px" />
+          </FormItem> -->
+          <FormItem label="允许迟到：">
+            <Row>
+              <Col span="3">
+              <FormItem prop="allowLate">
+                <Checkbox @on-change='allowLateChange'
+                          v-model="formModel.allowLate">是</Checkbox>
+              </FormItem>
+              </Col>
+              <Col span="15"
+                   v-show='formModel.allowLate'>
+              <FormItem label="迟到时间(分钟)："
+                        prop="lateTime">
+                <InputNumber :min="0"
+                             v-model="formModel.lateTime"></InputNumber>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem>
+          <FormItem v-if='formModel.id'
+                    label="生效时间：">
+            <Row>
+              <Col span="3">
+              <FormItem prop="isRightNow">
+                <RadioGroup v-model="formModel.isRightNow">
+                  <Radio :label='0'>立即生效</Radio>
+                  <Radio :label='1'>次日生效</Radio>
+                </RadioGroup>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem>
+          <!-- <FormItem label="允许严重迟到：">
+            <Row>
+              <Col span="3">
+              <FormItem prop="allowServerityLate">
+                <Checkbox v-model="formModel.allowServerityLate">是</Checkbox>
+              </FormItem>
+              </Col>
+              <Col span="15"
+                   v-show='formModel.allowServerityLate'>
+              <FormItem label="严重迟到时间(分钟)："
+                        prop="serverityLateTime">
+                <InputNumber :min="formModel.lateTime"
+                             v-model="formModel.serverityLateTime"></InputNumber>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem> -->
+          <!-- <FormItem label="允许旷工：">
+            <Row>
+              <Col span="3">
+              <FormItem prop="allowVastLate">
+                <Checkbox v-model="formModel.allowVastLate">是</Checkbox>
+              </FormItem>
+              </Col>
+              <Col span="15"
+                   v-show='formModel.allowVastLate'>
+              <FormItem label="旷工时间(分钟)："
+                        prop="vastLateTime">
+                <InputNumber :min="formModel.serverityLateTime"
+                             v-model="formModel.vastLateTime"></InputNumber>
+              </FormItem>
+              </Col>
+            </Row>
+          </FormItem> -->
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+export default {
+  name: "timePart",
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/TimePart",
+      searchFields: {
+
+      },
+      tableFields: [
+        // {
+        //   title: "序号",
+        //   align: "center",
+        //   type: 'index',
+        //   width: 100,
+        // },
+        {
+          title: "时间段名称",
+          key: "timePartName",
+          align: "center",
+
+        },
+        {
+          title: "上班时间（开始签到-结束签到）",
+          key: "onWorkTime",
+          align: "center",
+          render: (h, params) => {
+            return h(
+              "span",
+              `${params.row.onWorkTime} ( ${params.row.startSignOnTime}-${
+              params.row.endSignOnTime
+              } ) `
+            );
+          }
+        },
+        {
+          title: "下班时间（开始签退-结束签退）",
+          key: "offWorkTime",
+          align: "center",
+          render: (h, params) => {
+            return h(
+              "span",
+              `${params.row.offWorkTime} ( ${params.row.startSignOffTime}-${
+              params.row.endSignOffTime
+              } ) `
+            );
+          }
+        },
+        // {
+        //   title: "是否次日",
+        //   key: "isMorrow",
+        //   align: "center",
+        //   render: (h, params) => {
+        //     return h(
+        //       "span",
+        //       params.row.isMorrow ? '是' : '否'
+        //     );
+        //   }
+        // }
+      ],
+
+      formModel: {
+        timePartName: "",
+        onWorkTime: '',
+        offWorkTime: '',
+        isMorrow: false,
+        startSignOnTime: '',
+        endSignOnTime: '',
+        isStartMorrow: false,
+        startSignOffTime: '',
+        endSignOffTime: '',
+        isEndMorrow: false,
+        allowLate: false,
+        lateTime: 0,
+      },
+      formRule: {
+        timePartName: [{ required: true, message: "时间段名称不能为空", }],
+        onWorkTime: [{ required: true, message: "工作开始时间不能为空", }],
+        offWorkTime: [{ required: true, message: "工作结束时间不能为空", }],
+        startSignOnTime: [{ required: true, message: "签到开始时间不能为空", }],
+        endSignOnTime: [{ required: true, message: "签到结束时间不能为空", }],
+        startSignOffTime: [{ required: true, message: "签退开始时间不能为空", }],
+        endSignOffTime: [{ required: true, message: "签退结束时间不能为空", }],
+
+
+
+      }
+    };
+  },
+  computed: {},
+  methods: {
+    getFormDataAfter () {
+      this.formModel.isRightNow = 1;
+    },
+    submitDataBefore () {
+      delete this.formModel.xxx;
+    },
+    //允许迟到选择框切换触发
+    allowLateChange () {
+      this.formModel.lateTime = 0;
+    },
+  },
+  mounted () {
+  }
+};
+</script>
+<style lang="less" scoped></style>

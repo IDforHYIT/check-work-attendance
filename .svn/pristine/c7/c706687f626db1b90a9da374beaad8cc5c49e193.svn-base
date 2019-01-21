@@ -1,0 +1,373 @@
+<template>
+  <div class="role">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}- {{$route.query.displayName}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <!-- <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.name"
+               placeholder="请输入识别码" />
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row> -->
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             width='600'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="90"
+              :model="formModel"
+              :rules="formRule">
+          <!-- <Alert v-if='!this.formModel.id'
+                 type="warning"
+                 show-icon>注意：新增后数量不能修改<br>(天：最小1天，最大31天) (周：最小1周，最大4周) (月：只能选1月)</Alert> -->
+
+          <FormItem label="时间段："
+                    prop="startDate">
+            <Input style='width: 0;'
+                   v-model="formModel.startDate" />
+            <DatePicker v-model='formModelDaterange'
+                        :disabled='formModel.id?true:false'
+                        :readonly="formModel.id?true:false"
+                        type="daterange"
+                        split-panels
+                        placeholder="选择时间段"
+                        style="width: 200px"></DatePicker>
+          </FormItem>
+
+          <FormItem label="部门："
+                    prop="departInfos">
+            <treeselect style='width:200px;'
+                        multiple
+                        :disabled='formModel.id?true:false'
+                        placeholder='请输入部门名称'
+                        noResultsText='没有数据'
+                        :show-count="true"
+                        v-model="formModel.departInfos"
+                        :options="departInfoList" />
+          </FormItem>
+          <FormItem label="个人："
+                    prop="userGuids">
+            <Select placeholder='请选择用户'
+                    style='width:200px;'
+                    multiple
+                    filterable
+                    :disabled='formModel.id?true:false'
+                    v-model="formModel.userGuids">
+              <Option v-for='(t,i) in userList'
+                      :key='i'
+                      :value="t.userGuid">{{t.fullName}}</Option>
+            </Select>
+          </FormItem>
+          <FormItem label="数量：">
+            <Row>
+              <Col span="3">
+              <InputNumber style='width:50px'
+                           disabled
+                           :min="1"
+                           :value='1'></InputNumber>
+              </Col>
+              <Col span="9">
+              <FormItem prop="openRange ">
+                <Select @on-change='cycleUnitChange'
+                        :disabled="this.formModel.id?true:false"
+                        v-model="formModel.openRange "
+                        style="width:70px;margin-left:5px;">
+                  <Option :value="0">无</Option>
+                  <Option :value="1">周</Option>
+                  <Option :value="2">月</Option>
+                </Select>
+              </FormItem>
+              </Col>
+            </Row>
+
+          </FormItem>
+          <FormItem label="列表："
+                    prop="mTimeRange">
+            <Row style='margin-bottom:10px;'
+                 v-for='(t,i) in formModel.mTimeRange'
+                 :key='i'>
+              <Col span="3"> 第{{i+1}}天：</Col>
+              <Col span="14">
+              <Row>
+                <Col span="11">
+                <TimePicker v-model="t.startDate1"
+                            :readonly="formModel.id?true:false"
+                            :disabled='formModel.id?true:false'
+                            format="HH:mm:ss"
+                            placeholder="开始时间"
+                            style="width: 120px"></TimePicker><br />
+
+                </Col>
+                <Col span="1"
+                     style="text-align: left">-</Col>
+                <Col span="11">
+                <TimePicker v-model="t.endDate1"
+                            :readonly="formModel.id?true:false"
+                            :disabled='formModel.id?true:false'
+                            format="HH:mm:ss"
+                            placeholder="结束时间"
+                            style="width: 120px"></TimePicker><br />
+
+                </Col>
+              </Row>
+              </Col>
+            </Row>
+          </FormItem>
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import moment from "moment";
+import { getDepartInfoList, getUserList, getBanciList } from "@/api/data";
+export default {
+  name: 'deviceRules',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      url: "/MDeviceRules",
+      searchFields: {
+        mDeviceId: this.$route.query.id
+      },
+      deviceTypeList: [{
+        value: 1,
+        label: '考勤机'
+      }, {
+        value: 2,
+        label: '门禁机'
+      }],
+      userList: [],//部门列表  
+      tableFields: [
+        {
+          title: "类型",
+          key: "openModeText",
+          align: "center",
+
+        },
+        {
+          title: "规则对象",
+          key: "userNames",
+          align: "center",
+          render: (h, params) => {
+            return h("span", params.row.userNames.join());
+          }
+
+        },
+      ],
+      formModelDaterange: [],//时间段选择临时存放
+      formModel: {
+        startDate: '',
+        endDate: '',
+        mDeviceId: this.$route.query.id,
+        openRange: 1,
+        userGuids: [],
+        departInfos: [],
+        mTimeRange: [
+          {
+            dayNum: 1,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 2,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 3,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 4,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 5,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 6,
+            startDate1: '',
+            endDate1: ''
+          },
+          {
+            dayNum: 7,
+            startDate1: '',
+            endDate1: ''
+          },
+
+        ],
+
+      },
+      formRule: {
+        name: { required: true, message: '设备识别码不能为空', trigger: 'change' },
+        displayName: { required: true, message: '设备名称不能为空', trigger: 'change' },
+        description: "",
+        deviceTypeText: "",
+        mainUserGuid: { required: true, message: '设备负责人不能为空', trigger: 'change' },
+        deviceType: { required: true, type: "number", message: '设备类型不能为空', trigger: 'change' },
+
+      },
+      departInfoList: [],//部门列表   
+      userList: [],//部门列表  
+
+    };
+  },
+  watch: {
+    'formModelDaterange' (dateRangeArr) {
+      if (dateRangeArr[0] != '') {
+        this.formModel['startDate'] = moment(dateRangeArr[0]).format("YYYY-MM-DD")
+        this.formModel['endDate'] = moment(dateRangeArr[1]).format("YYYY-MM-DD")
+      }
+    }
+  },
+  computed: {},
+  methods: {
+    //获取form之后执行
+    getFormDataAfter () {
+      console.log(this.formModel.userGuid)
+      this.formModelDaterange = [this.formModel.startDate, this.formModel.endDate];
+    },
+    formCloseModalAfter () {
+      this.formModel.startDate = '';
+      this.formModel.endDate = '';
+      this.formModelDaterange = [];
+      this.formModel.openRange = 1;
+      this.formModel.mTimeRange = [
+        {
+          dayNum: 1,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 2,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 3,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 4,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 5,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 6,
+          startDate1: '',
+          endDate1: ''
+        },
+        {
+          dayNum: 7,
+          startDate1: '',
+          endDate1: ''
+        },
+
+      ]
+    },
+    //处理部门tree数据格式
+    handleDepartInfoList (list) {
+      list.forEach((t, i) => {
+        t.label = t.departName;
+        if (t.children && t.children.length > 0) {
+          this.handleDepartInfoList(t.children);
+        } else {
+          t.children = '';
+        }
+      })
+    },
+    //获取部门列表
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+        this.handleDepartInfoList(res.data)
+        this.departInfoList = res.data;
+      })
+    },
+    //获取用户列表
+    getUserList () {
+      getUserList({
+        pageSize: 999,
+        curPage: 1,
+      }).then((res) => {
+        this.userList = res.data;
+      })
+    },
+    //周天月select切换
+    cycleUnitChange () {
+      
+      let num = 1;
+      if (this.formModel.id) {
+        return false;
+      }
+      this.formModel.mTimeRange = [];
+      let lengthObj = {
+        1: num * 7,//周
+        2: num * 31,//月
+        3: num * 1 //天
+      }
+      for (let i = 0; i < lengthObj[this.formModel.openRange]; i++) {
+        this.formModel.mTimeRange.push({
+          dayNum: i + 1,
+        });
+      }
+    },
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+  }
+};
+</script>
+<style lang="less" scoped></style>

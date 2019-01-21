@@ -1,0 +1,94 @@
+<template>
+  <Modal ref='formModal'
+         width='550'
+         v-model="formShow"
+         :loading='modalButtonShowLoading'
+         @on-ok='submitData'
+         @on-cancel='formCloseModal'
+         :title='$route.meta.title+"密码设置"'>
+    <Spin fix
+          v-if='formLoading'></Spin>
+    <Form ref='form'
+          :label-width="130"
+          :model="formModel"
+          :rules="formRule">
+      <FormItem label="设备识别码："
+                prop="name">
+        <Input v-model="formModel.name"
+               disabled
+               placeholder="请输入识别码" />
+      </FormItem>
+      <FormItem label="设备密码："
+                prop="password">
+        <Input type='password'
+               v-model="formModel.password"
+               placeholder="请输入设备密码" />
+      </FormItem>
+    </Form>
+  </Modal>
+</template>
+<script>
+import axios from '@/libs/api.request'
+import mixins from "@/libs/mixins.js";
+export default {
+  name: "MDeviceEditPassword",
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      noMounted: true,
+      url: "/MDevice/SetOpenDoorPassword",
+      formModel: {
+        name: "",
+        password: '',
+
+      },
+      formRule: {
+        name: { required: true, message: '设备识别码不能为空', trigger: 'change' },
+        password: { required: true, message: '设备密码不能为空', trigger: 'change' },
+
+
+      },
+
+
+    };
+  },
+  computed: {},
+  methods: {
+    //打开表单弹窗,id是这条数据的id
+    formOpenModal (name) {
+      this.formShow = true;
+      this.formModel.name = name;
+    },
+    //提交数据（新增/修改数据触发按钮）
+    submitData () {
+      this.$refs['form'].validate((valid) => {
+        if (valid) {
+          this.formSubmitLoading = true;
+          axios.request({
+            url: `${this.url}`,
+            method: 'post',
+            data: this.formModel
+          }).then((res) => {
+            this.$Message.success('设置密码成功');
+            this.formCloseModal();
+            // this.getData();
+          }).catch((res) => {
+            this.formSubmitLoading = false;
+            this.modalButtonShowLoadingReset();
+          })
+        } else {
+          //处理点击确定按钮时验证不通过 loading一直显示的问题
+          this.modalButtonShowLoadingReset();
+          // this.$Message.error('验证失败！');
+        }
+      })
+    },
+
+  },
+  mounted () {
+
+  }
+};
+</script>
+<style lang="less" scoped></style>

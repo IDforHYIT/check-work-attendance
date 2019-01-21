@@ -1,0 +1,222 @@
+<template>
+  <div class="product">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class="title">
+        <CommonIcon :size="16"
+                    :type="$route.meta.icon"></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class="action">
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <treeselect style='width:200px;display: inline-block;
+                      vertical-align: -14px;
+                      margin-right: 10px;'
+                    placeholder='请选择部门名称'
+                    noResultsText='没有数据'
+                    multiple
+                    :show-count="true"
+                    v-model="searchFields.departInfoIds"
+                    :options="departInfoList" />
+        <Select placeholder='请选择用户'
+                @on-change='searchData()'
+                v-model="searchFields.userGuids"
+                multiple
+                style="width:200px">
+          <Option v-for="t in userList"
+                  :value="t.userGuid"
+                  :key="t.userGuid">{{ t.name }}</Option>
+        </Select>
+
+        <DatePicker @on-change='searchData'
+                    v-model='searchDaterange'
+                    :options='searchDaterangeOptions'
+                    type="daterange"
+                    split-panels
+                    placeholder="选择时间段"></DatePicker>
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table ref='table'
+             height="500"
+             border
+             :loading="tableLoading"
+             :columns="tableFields"
+             :data="tableList"></Table>
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+    </Card>
+  </div>
+</template>
+<script>
+import axios from '@/libs/api.request'
+import mixins from "@/libs/mixins.js";
+import { getDepartInfoList, getUserList, getBanciList, deleteDaKaList } from "@/api/data";
+import moment from "moment";
+export default {
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      departInfoList: [],//部门列表   
+      userList: [],//部门列表 
+      url: "/UserSignInfo/UserSignInfoListByMonth",
+      tableFields: [{
+        title: "姓名",
+        key: "name",
+        align: "center",
+        fixed: "left",
+        width: 100
+      }, {
+        title: "部门",
+        key: "def",
+        align: "center"
+      }, {
+        title: "工号",
+        key: "code",
+        align: "center"
+      },],
+      tableList: [{
+        name: '王婷婷',
+        def: '测试组',
+        code: '1001',
+      }, {
+        name: '王婷婷2',
+        def: '测试组2',
+        code: '1002',
+        code2: 'sadasd'
+      }],
+      searchDaterangeOptions: {
+        shortcuts: [],
+        disabledDate (date) {
+          return date && date.valueOf() > Date.now();
+        }
+      },
+      searchDaterange: [moment().startOf('month').format('YYYY-MM-DD'), moment().format('YYYY-MM-DD')],
+      searchFields: {
+        departInfoIds: [],
+        userGuids: [],
+        startDate: moment().startOf('month').format('YYYY-MM-DD'),
+        endDate: moment().format('YYYY-MM-DD'),
+      },
+    };
+  },
+  computed: {
+    //合并table配置
+    tableFieldsRender () {
+      return this.tableFields
+    },
+
+  },
+  methods: {
+    //获取列表数据
+    getData () {
+      this.tableLoading = true
+      axios.request({
+        url: `${this.url}/post`,
+        method: 'post',
+        data: {
+          userFilter: this.searchFields,
+          pageFilter: {
+            curPage: this.curPage,
+            pageSize: this.pageSize,
+          }
+
+
+        }
+      }).then((res) => {
+        this.tableLoading = false;
+        this.searchLoading = false;
+        this.tableList = res.data;
+        this.total = res.total;
+        this.getTableHeader();
+      }).catch((res) => {
+        this.tableLoading = false;
+        this.searchLoading = false;
+      })
+    },
+    //获取表格标题
+    getTableHeader () {
+      axios.request({
+        url: '/UserSignInfo/UserSignInfoListByMonthHeader',
+        method: 'post',
+        params: {
+
+        }
+      }).then((res) => {
+        let data = res.data.map((t, i) => {
+          return {
+            title: t.name,
+            key: t.key,
+            align: "center",
+            width: 150,
+            render: (h, params) => {
+              //如果是排班日期对象，那就显示message
+              if (typeof params.row[t.key] === 'object') {
+                return h("pre", `${params.row[t.key].message}`)
+              }
+              return h("span", params.row[t.key]);
+            }
+          }
+        })
+        data[0].fixed = 'left';
+        data[0].width = 100;
+        this.tableFields = data;
+      })
+    },
+    //处理部门tree数据格式
+    handleDepartInfoList (list) {
+      list.forEach((t, i) => {
+        t.label = t.departName;
+        if (t.children && t.children.length > 0) {
+          this.handleDepartInfoList(t.children);
+        } else {
+          t.children = '';
+        }
+      })
+    },
+    //获取部门列表
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+        this.handleDepartInfoList(res.data)
+        this.departInfoList = res.data;
+      })
+    },
+    //获取用户列表
+    getUserList () {
+      getUserList().then((res) => {
+        this.userList = res.data;
+      })
+    },
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getUserList();
+
+  }
+};
+</script>

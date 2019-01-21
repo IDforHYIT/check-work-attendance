@@ -1,0 +1,330 @@
+<template>
+  <div class="role">
+    <Card>
+      <Row slot="title"
+           class="common-table-title">
+        <Col span="12"
+             class='title'>
+        <CommonIcon :size='16'
+                    :type='$route.meta.icon'></CommonIcon>
+        {{$route.meta.title}}
+        </Col>
+        <Col span="12"
+             class='action'>
+        <Button type="info"
+                size="small"
+                icon="md-add"
+                @click="formOpenModal()">添加</Button>
+        <Button type="warning"
+                size="small"
+                icon="md-sync"
+                @click="getData()">刷新</Button>
+        </Col>
+      </Row>
+      <Row class="common-search-box"
+           @keydown.enter.native="searchData">
+        <Col span="24">
+        <Input v-model="searchFields.userName"
+               placeholder="请选择姓名" />
+        <Input v-model="searchFields.cardCode"
+               placeholder="请选择身份证" />
+        <treeselect style='width:200px;display: inline-block;
+                      vertical-align: -14px;
+                      margin-right: 10px;'
+                    placeholder='请选择部门名称'
+                    noResultsText='没有数据'
+                    :show-count="true"
+                    v-model="searchFields.departInfoId"
+                    :options="departInfoList" />
+        <Button type="primary"
+                icon="search"
+                :loading="searchLoading"
+                @click='searchData'>搜索</Button>
+        </Col>
+      </Row>
+      <Table :loading="tableLoading"
+             :columns="tableFieldsRender"
+             :data="tableList"></Table>
+
+      <Page class='common-page-box'
+            v-if='tableList.length>0'
+            show-sizer
+            show-elevator
+            :page-size="pageSize"
+            :total="total"
+            :current="curPage"
+            @on-change="pageChange"
+            @on-page-size-change='pageChangeSize'></Page>
+      <Modal ref='formModal'
+             v-model="formShow"
+             :loading='modalButtonShowLoading'
+             @on-ok='submitData'
+             @on-cancel='formCloseModal'
+             :title='$route.meta.title+"详情"'>
+        <Spin fix
+              v-if='formLoading'></Spin>
+        <Form ref='form'
+              :label-width="90"
+              :model="formModel"
+              :rules="formRule">
+          <FormItem label="头像："
+                    prop="headerImgUrl">
+            <CommonUpload action='User/UpLoadHeadImg'
+                          ref='commonUpload'
+                          @on-success='uploadSuccess'></CommonUpload>
+
+          </FormItem>
+          <FormItem label="头像路径："
+                    prop="headerImg">
+            <Input v-model="formModel.headerImg"
+                   placeholder="请输入头像路径" />
+          </FormItem>
+          <!-- <FormItem label="姓氏："
+                    prop="surname">
+            <Input v-model="formModel.surname"
+                   placeholder="请输入姓氏" />
+          </FormItem> -->
+          <FormItem label="姓名："
+                    prop="name">
+            <Input v-model="formModel.name"
+                   placeholder="请输入姓名" />
+          </FormItem>
+
+          <FormItem label="用户名："
+                    prop="userName">
+            <Input v-model="formModel.userName"
+                   :disabled='formModel.id?true:false'
+                   placeholder="请输入用户名" />
+          </FormItem>
+          <FormItem label="工号："
+                    prop="userCode">
+            <Input v-model="formModel.userCode"
+                   placeholder="请输入工号" />
+          </FormItem>
+          <FormItem label="身份证："
+                    prop="cardCode">
+            <Input v-model="formModel.cardCode"
+                   placeholder="请输入身份证" />
+          </FormItem>
+          <FormItem v-if='!formModel.id'
+                    label="密码："
+                    prop="password">
+            <Input type='password'
+                   v-model="formModel.password"
+                   placeholder="请输入密码" />
+          </FormItem>
+          <FormItem label="部门："
+                    prop="departInfoId">
+            <treeselect style='width:200px;'
+                        placeholder='请输入内容'
+                        noResultsText='没有数据'
+                        :show-count="true"
+                        v-model="formModel.departInfoId"
+                        :options="departInfoList" />
+          </FormItem>
+          <FormItem label="权限："
+                    prop="newRoles">
+            <treeselect style='width:200px;'
+                        :disable-branch-nodes="true"
+                        placeholder='请选择权限'
+                        noResultsText='没有数据'
+                        :show-count="true"
+                        multiple
+                        v-model="formModel.newRoles"
+                        :options="newRoleGroupList" />
+          </FormItem>
+          </FormItem>
+          <FormItem style='display:none'
+                    label="用户Guid："
+                    prop="userGuid">
+            <Input v-model="formModel.userGuid"
+                   placeholder="请输入用户Guid" />
+          </FormItem>
+          <FormItem label="是否激活："
+                    prop="isActive">
+            <i-switch v-model="formModel.isActive" />
+          </FormItem>
+
+        </Form>
+      </Modal>
+    </Card>
+  </div>
+</template>
+<script>
+import mixins from "@/libs/mixins.js";
+import { getDepartInfoList, getnewRoleGroupListWithRoles } from "@/api/data";
+export default {
+  name: 'users',
+  mixins: [mixins.commonPage],
+  components: {},
+  data () {
+    return {
+      departInfoList: [],
+      newRoleGroupList: [],
+      aliasId: 'userGuid',
+      roleList: [],
+      url: "/User",
+      searchFields: {
+
+      },
+      tableFields: [
+        {
+          title: "用户头像",
+          align: "left",
+          render: (h, params) => {
+            return h("Avatar", {
+              props: {
+                shape: "square",
+                size: "large",
+                src: params.row.headerImgUrl
+              }
+            });
+          }
+        },
+
+        {
+          title: "用户名",
+          key: "userName",
+          align: "left"
+        },
+        {
+          title: "真实姓名",
+          key: "fullName",
+          align: "left"
+        },
+        {
+          title: "身份证",
+          key: "cardCode",
+          align: "center"
+        },
+        {
+          title: "部门",
+          key: "departName",
+          align: "center"
+        },
+        {
+          title: "激活状态",
+          key: "isActive",
+          align: "center",
+          render: (h, params) => {
+            return h(
+              "Tag", {
+                props: {
+                  color: params.row.isActive ? 'success' : 'error'
+                }
+              }, params.row.isActive ? '激活' : '未激活');
+          }
+        },
+      ],
+      tableFieldsAction: {
+        title: "操作",
+        key: "action",
+        width: 170,
+        align: "center",
+        render: (h, params) => {
+          return h("div", [
+            h(
+              "Button", {
+                props: {
+                  icon: "md-create",
+                  type: "success",
+                  size: "small"
+                },
+                style: {
+                  marginRight: "5px"
+                },
+                on: {
+                  click: () => {
+                    this.formOpenModal(params.row[this.aliasId ? this.aliasId : 'id']);
+                  }
+                }
+              },
+              "修改"
+            )
+          ]);
+        }
+      },
+      formModel: {
+        headerImgUrl: '',
+        headerImg: "",
+        surname: "",
+        name: "",
+        userName: "",
+        userCode: "",
+        cardCode: "",
+        password: "",
+        departInfoId: null,
+        newRoles: [],
+        userGuid: '',
+        isActive: true,
+      },
+      formRule: {
+        headerImg: [{ required: true, message: "请上传头像", }],
+        name: [{ required: true, message: "名字不能为空", }],
+        userName: [{ required: true, message: "用户名不能为空", }],
+        cardCode: [{ required: true, message: "身份证不能为空", },
+        { pattern: /^[1-9]\d{5}(18|19|([23]\d))\d{2}((0[1-9])|(10|11|12))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/, message: "身份证格式错误", },],
+        userCode: [{ required: true, message: "工号不能为空", }],
+        password: [{ required: true, message: "密码不能为空", }],
+        surname: [{ required: true, message: "姓氏不能为空", }],
+        departInfoId: [{ required: true, message: "部门不能为空", }],
+      }
+    };
+  },
+  computed: {},
+  methods: {
+    uploadSuccess (headerImgUrl, headerImg) {
+      this.formModel.headerImg = headerImg;
+      this.formModel.headerImgUrl = headerImgUrl;
+    },
+    getFormDataAfter () {
+      this.$refs["commonUpload"].setUploadDefaultList(this.formModel.headerImgUrl);
+    },
+    formOpenModal (id) {
+      this.formShow = true;
+      if (id) {
+        this.getFormData(id);
+      }
+    },
+    getDepartInfoList () {
+      getDepartInfoList().then((res) => {
+        this.handleTreeData(res.data);
+        this.departInfoList = res.data;
+      })
+    },
+    getnewRoleGroupListWithRoles () {
+      getnewRoleGroupListWithRoles().then((res) => {
+        this.newRoleGroupData(res.data);
+        this.newRoleGroupList = res.data;
+      })
+    },
+    newRoleGroupData (list) {
+      list.forEach((t, i) => {
+        t.label = t.name;
+        if (t.children && t.children.length > 0) {
+          this.newRoleGroupData(t.children);
+        } else {
+          t.children = '';
+        }
+      })
+    },
+    //处理tree数据格式
+    handleTreeData (list) {
+      list.forEach((t, i) => {
+        t.label = t.departName;
+        if (t.children && t.children.length > 0) {
+          this.handleTreeData(t.children);
+        } else {
+          t.children = '';
+        }
+      })
+    },
+  },
+  mounted () {
+    this.getDepartInfoList();
+    this.getnewRoleGroupListWithRoles();
+  }
+};
+</script>
+<style lang="less" scoped>
+</style>
